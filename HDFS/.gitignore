@@ -1,1 +1,6 @@
 /target/
+/target
+core-site.xml
+hdfs-site.xml
+mapred-site.xml
+*.keytab

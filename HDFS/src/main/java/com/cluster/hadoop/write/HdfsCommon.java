@@ -1,19 +1,21 @@
 package com.cluster.hadoop.write;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
-import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
+
 
 public class HdfsCommon {
 	private Configuration conf;
@@ -46,7 +48,6 @@ public class HdfsCommon {
 		InputStream in = new BufferedInputStream(new FileInputStream(localFile));
 		OutputStream out = fs.create(new Path(hdfsPath));
 		IOUtils.copyBytes(in, out, conf);
-//		FileUtil.
 	}
 
 	/**
@@ -84,5 +85,32 @@ public class HdfsCommon {
 	 */
 	public void delFile(String hdfsPath) throws IOException {
 		fs.delete(new Path(hdfsPath), true);
+	}
+	
+	public void upLoadMerge(String srcDir, String remoteFile) throws Exception{
+		File srcPath = new File(srcDir);
+		if(!srcPath.isDirectory()){
+			System.out.println(srcDir + " is not a Directory");
+			return;
+		}
+		
+		OutputStream out = fs.create(new Path(remoteFile));
+		
+		List<File> files = Arrays.asList(srcPath.listFiles());
+		InputStream in = null;
+		for (File f:files){
+			if(f.isFile()){
+				in = new FileInputStream(f);
+				try {
+					IOUtils.copyBytes(in, out, conf, false);
+				} finally{
+					in.close();
+				}
+			}
+		}
+		out.close();
+			
+		
+//		FileUtil.copyMerge(fs, new Path("/tmp/tdlog"), fs, new Path("/tmp/merge"), false, conf, null);
 	}
 }
