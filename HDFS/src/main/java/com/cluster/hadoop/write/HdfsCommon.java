@@ -15,6 +15,9 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.security.UserGroupInformation;
+import org.apache.log4j.spi.Filter;
+
+import com.google.common.io.PatternFilenameFilter;
 
 
 public class HdfsCommon {
@@ -29,9 +32,12 @@ public class HdfsCommon {
 		
 		System.out.println(conf.toString());
 		
-		
-		UserGroupInformation.setConfiguration(conf);
-		UserGroupInformation.loginUserFromKeytab("impala/cib69@CIB_BIGDATA.COM", "impala.keytab");
+		try{
+			UserGroupInformation.setConfiguration(conf);
+			UserGroupInformation.loginUserFromKeytab("impala/cib69@CIB_BIGDATA.COM", "impala.keytab");
+		}catch(Exception e){
+			System.out.println("Not Authorize");
+		}
 		fs = FileSystem.get(conf);
 	}
 
@@ -87,19 +93,24 @@ public class HdfsCommon {
 		fs.delete(new Path(hdfsPath), true);
 	}
 	
-	public void upLoadMerge(String srcDir, String remoteFile) throws Exception{
+	public void upLoadMerge(String srcDir, String remoteFile, String filterStr) throws Exception{
 		File srcPath = new File(srcDir);
 		if(!srcPath.isDirectory()){
 			System.out.println(srcDir + " is not a Directory");
 			return;
 		}
 		
+		if( null == filterStr)
+			filterStr = ".*";
+		
+		PatternFilenameFilter fileFilter = new PatternFilenameFilter(filterStr);
+		
 		OutputStream out = fs.create(new Path(remoteFile));
 		
 		List<File> files = Arrays.asList(srcPath.listFiles());
 		InputStream in = null;
 		for (File f:files){
-			if(f.isFile()){
+			if(f.isFile() && fileFilter.accept(null, f.getName())){
 				in = new FileInputStream(f);
 				try {
 					IOUtils.copyBytes(in, out, conf, false);
